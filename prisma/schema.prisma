@@ -13,6 +13,16 @@ model User {
   createdAt DateTime   @default(now())
   memories  Memory[]
   reminders Reminder[]
+  messages  Message[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  role      String // "user" | "assistant"
+  content   String
+  createdAt DateTime @default(now())
 }
 
 model Memory {

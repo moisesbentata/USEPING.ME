@@ -69,12 +69,21 @@ async function runTool(userId: string, name: string, input: any): Promise<string
   }
 }
 
+const HISTORY_LIMIT = 20;
+
 export async function handleIncomingMessage(userId: string, userText: string): Promise<string> {
   const recentMemories = await prisma.memory.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
     take: 20,
   });
+
+  const recentHistory = await prisma.message.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: HISTORY_LIMIT,
+  });
+  recentHistory.reverse();
 
   const now = new Date();
   const systemPrompt = `You are Ping, a warm and efficient personal WhatsApp assistant. You remember things about the user and set reminders for them.
@@ -90,7 +99,15 @@ Guidelines:
 - If the user asks to be reminded of something, call create_reminder with an absolute ISO dueAt computed from the current time above.
 - Keep replies short, natural, and conversational, like a text from a helpful human assistant. Don't narrate tool use ("I'll save that") — just confirm naturally ("Got it, noted!").`;
 
-  const messages: Anthropic.MessageParam[] = [{ role: "user", content: userText }];
+  const messages: Anthropic.MessageParam[] = [
+    ...recentHistory.map((m): Anthropic.MessageParam => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: m.content,
+    })),
+    { role: "user", content: userText },
+  ];
+
+  await prisma.message.create({ data: { userId, role: "user", content: userText } });
 
   for (let turn = 0; turn < 5; turn++) {
     const response = await anthropic.messages.create({
@@ -105,7 +122,9 @@ Guidelines:
 
     if (toolUses.length === 0) {
       const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-      return textBlock?.text ?? "Done.";
+      const reply = textBlock?.text ?? "Done.";
+      await prisma.message.create({ data: { userId, role: "assistant", content: reply } });
+      return reply;
     }
 
     messages.push({ role: "assistant", content: response.content });
@@ -118,5 +137,7 @@ Guidelines:
     messages.push({ role: "user", content: toolResults });
   }
 
-  return "Sorry, I got a bit stuck on that one — could you rephrase?";
+  const fallback = "Sorry, I got a bit stuck on that one — could you rephrase?";
+  await prisma.message.create({ data: { userId, role: "assistant", content: fallback } });
+  return fallback;
 }
