@@ -10,10 +10,6 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
-  "repository": {
-    "type": "git",
-    "url": "http://local_proxy@127.0.0.1:41729/git/moisesbentata/USEPING.ME"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
