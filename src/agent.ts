@@ -46,6 +46,14 @@ const tools: Anthropic.Tool[] = [
     },
   },
   {
+    name: "list_reminders",
+    description: "Look up the user's actual pending (not-yet-sent) reminders. Always call this instead of guessing from conversation history when asked what reminders exist.",
+    input_schema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
     name: "set_timezone",
     description:
       "Save the user's timezone so clock-time reminders (e.g. '6pm', 'at 9 tomorrow') resolve correctly. Call this whenever the user tells you where they are or that they've moved/traveled, or in response to asking them where they're based.",
@@ -62,7 +70,7 @@ const tools: Anthropic.Tool[] = [
   },
 ];
 
-async function runTool(userId: string, name: string, input: any): Promise<string> {
+async function runTool(userId: string, name: string, input: any, timezone: string | null): Promise<string> {
   switch (name) {
     case "remember_fact": {
       const embedding = await embedText(input.fact, "document");
@@ -93,6 +101,19 @@ async function runTool(userId: string, name: string, input: any): Promise<string
     case "set_timezone": {
       await prisma.user.update({ where: { id: userId }, data: { timezone: input.ianaTimezone } });
       return `Timezone set to ${input.ianaTimezone}.`;
+    }
+    case "list_reminders": {
+      const reminders = await prisma.reminder.findMany({
+        where: { userId, status: "pending" },
+        orderBy: { dueAt: "asc" },
+      });
+      if (reminders.length === 0) return "No pending reminders.";
+      return reminders
+        .map((r) => {
+          const when = timezone ? r.dueAt.toLocaleString("en-US", { timeZone: timezone }) : r.dueAt.toISOString();
+          return `- ${r.message} (${when})`;
+        })
+        .join("\n");
     }
     default:
       return `Unknown tool: ${name}`;
@@ -134,6 +155,7 @@ Guidelines:
 - If the user shares a durable fact about themselves (relationships, preferences, important info), call remember_fact.
 - If the user asks about something you might know, call search_memory first.
 - If the user mentions where they are, are traveling to, or moving to, call set_timezone with the correct IANA timezone for that place.
+- If the user asks what reminders they have, or to check/list/cancel one, call list_reminders first — never guess or recall reminders from the conversation history, since that can be stale or wrong.
 - If the user asks to be reminded of something using a relative time ("in 10 mins", "in an hour"), that doesn't depend on timezone — just compute it from the current UTC time above and call create_reminder.
 - If the user asks to be reminded at a specific clock time ("6pm", "at 9 tomorrow", "13:20") and you do NOT know their timezone yet, don't guess — ask them where they're based first (e.g. "Quick one — what city/timezone are you in? Then I'll set that for good."). Once they answer, call set_timezone, then create_reminder.
 - Once you know the user's timezone, convert clock times they give you into the correct UTC dueAt using that timezone before calling create_reminder.
@@ -174,7 +196,7 @@ Guidelines:
 
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const toolUse of toolUses) {
-      const result = await runTool(userId, toolUse.name, toolUse.input);
+      const result = await runTool(userId, toolUse.name, toolUse.input, user.timezone);
       toolResults.push({ type: "tool_result", tool_use_id: toolUse.id, content: result });
     }
     messages.push({ role: "user", content: toolResults });
