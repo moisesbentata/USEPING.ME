@@ -1,5 +1,7 @@
+import { randomUUID } from "crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "./db";
+import { embedText, toVectorLiteral } from "./embeddings";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -18,11 +20,12 @@ const tools: Anthropic.Tool[] = [
   },
   {
     name: "search_memory",
-    description: "Search the user's remembered facts by keyword before answering a question about their life.",
+    description:
+      "Search the user's remembered facts by meaning before answering a question about their life. Works even if the wording doesn't match exactly.",
     input_schema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Keyword or phrase to search for." },
+        query: { type: "string", description: "What to search for, e.g. 'user's pet' or 'startup investors they've met'." },
       },
       required: ["query"],
     },
@@ -47,15 +50,23 @@ const tools: Anthropic.Tool[] = [
 async function runTool(userId: string, name: string, input: any): Promise<string> {
   switch (name) {
     case "remember_fact": {
-      await prisma.memory.create({ data: { userId, content: input.fact } });
+      const embedding = await embedText(input.fact, "document");
+      const vectorLiteral = toVectorLiteral(embedding);
+      await prisma.$executeRaw`
+        INSERT INTO "Memory" (id, "userId", content, embedding, "createdAt")
+        VALUES (${randomUUID()}, ${userId}, ${input.fact}, ${vectorLiteral}::vector, now())
+      `;
       return `Saved: ${input.fact}`;
     }
     case "search_memory": {
-      const memories = await prisma.memory.findMany({
-        where: { userId, content: { contains: input.query } },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      });
+      const embedding = await embedText(input.query, "query");
+      const vectorLiteral = toVectorLiteral(embedding);
+      const memories = await prisma.$queryRaw<{ content: string }[]>`
+        SELECT content FROM "Memory"
+        WHERE "userId" = ${userId}
+        ORDER BY embedding <=> ${vectorLiteral}::vector
+        LIMIT 5
+      `;
       if (memories.length === 0) return "No matching memories found.";
       return memories.map((m) => `- ${m.content}`).join("\n");
     }
