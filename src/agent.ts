@@ -45,6 +45,21 @@ const tools: Anthropic.Tool[] = [
       required: ["message", "dueAt"],
     },
   },
+  {
+    name: "set_timezone",
+    description:
+      "Save the user's timezone so clock-time reminders (e.g. '6pm', 'at 9 tomorrow') resolve correctly. Call this whenever the user tells you where they are or that they've moved/traveled, or in response to asking them where they're based.",
+    input_schema: {
+      type: "object",
+      properties: {
+        ianaTimezone: {
+          type: "string",
+          description: "IANA timezone identifier inferred from the user's stated city/country, e.g. 'Europe/London', 'America/New_York'.",
+        },
+      },
+      required: ["ianaTimezone"],
+    },
+  },
 ];
 
 async function runTool(userId: string, name: string, input: any): Promise<string> {
@@ -75,6 +90,10 @@ async function runTool(userId: string, name: string, input: any): Promise<string
       await prisma.reminder.create({ data: { userId, message: input.message, dueAt } });
       return `Reminder scheduled for ${dueAt.toISOString()}.`;
     }
+    case "set_timezone": {
+      await prisma.user.update({ where: { id: userId }, data: { timezone: input.ianaTimezone } });
+      return `Timezone set to ${input.ianaTimezone}.`;
+    }
     default:
       return `Unknown tool: ${name}`;
   }
@@ -83,6 +102,8 @@ async function runTool(userId: string, name: string, input: any): Promise<string
 const HISTORY_LIMIT = 20;
 
 export async function handleIncomingMessage(userId: string, userText: string): Promise<string> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+
   const recentMemories = await prisma.memory.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
@@ -97,9 +118,14 @@ export async function handleIncomingMessage(userId: string, userText: string): P
   recentHistory.reverse();
 
   const now = new Date();
+  const timezoneContext = user.timezone
+    ? `The user's timezone is ${user.timezone}. Their current local time is ${now.toLocaleString("en-US", { timeZone: user.timezone })}.`
+    : `The user's timezone is NOT known yet. You only have UTC: ${now.toISOString()}.`;
+
   const systemPrompt = `You are Ping, the user's personal assistant, texting them on WhatsApp. You remember things about them and set reminders for them.
 
-Current date/time (ISO, use this to resolve relative times like "in 10 mins" or "tomorrow"): ${now.toISOString()}
+Current UTC date/time (ISO): ${now.toISOString()}
+${timezoneContext}
 
 Known facts about this user:
 ${recentMemories.length ? recentMemories.map((m) => `- ${m.content}`).join("\n") : "(none yet)"}
@@ -107,7 +133,10 @@ ${recentMemories.length ? recentMemories.map((m) => `- ${m.content}`).join("\n")
 Guidelines:
 - If the user shares a durable fact about themselves (relationships, preferences, important info), call remember_fact.
 - If the user asks about something you might know, call search_memory first.
-- If the user asks to be reminded of something, call create_reminder with an absolute ISO dueAt computed from the current time above.
+- If the user mentions where they are, are traveling to, or moving to, call set_timezone with the correct IANA timezone for that place.
+- If the user asks to be reminded of something using a relative time ("in 10 mins", "in an hour"), that doesn't depend on timezone — just compute it from the current UTC time above and call create_reminder.
+- If the user asks to be reminded at a specific clock time ("6pm", "at 9 tomorrow", "13:20") and you do NOT know their timezone yet, don't guess — ask them where they're based first (e.g. "Quick one — what city/timezone are you in? Then I'll set that for good."). Once they answer, call set_timezone, then create_reminder.
+- Once you know the user's timezone, convert clock times they give you into the correct UTC dueAt using that timezone before calling create_reminder.
 - Write like a real person texting, not a customer support bot. Short sentences. No bullet points, no bold/markdown headers, no numbered lists, unless the user is explicitly asking for a structured list of items — even then keep it minimal (plain dashes, no headers, no bold).
 - Don't over-explain or pad the reply with extra offers to help unless it's genuinely useful. One or two sentences is often enough.
 - Don't narrate tool use ("I'll save that") — just reply the way a person would after already knowing the answer.
