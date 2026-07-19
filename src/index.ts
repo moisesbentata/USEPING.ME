@@ -17,6 +17,29 @@ async function downloadTwilioMedia(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer());
 }
 
+const RESEARCH_HINTS = [
+  "latest",
+  "news",
+  "today",
+  "this week",
+  "recent",
+  "current",
+  "what's happening",
+  "whats happening",
+  "score",
+  "price of",
+  "weather",
+  "search",
+  "look up",
+  "look into",
+  "research",
+];
+
+function looksLikeResearchQuery(text: string): boolean {
+  const lower = text.toLowerCase();
+  return RESEARCH_HINTS.some((hint) => lower.includes(hint));
+}
+
 async function resolveMessageText(reqBody: any): Promise<string | null> {
   const numMedia = Number(reqBody.NumMedia ?? "0");
   if (numMedia > 0) {
@@ -61,6 +84,10 @@ app.post("/webhooks/whatsapp", async (req, res) => {
         await sendWhatsAppMessage(phone, "Got it, I'll pass that along! 🙂");
         return;
       }
+    }
+
+    if (looksLikeResearchQuery(body)) {
+      await sendWhatsAppMessage(phone, "Sure! Give me a sec to look into that 🔍");
     }
 
     const user = existingUser ?? (await getOrCreateUser(phone));
