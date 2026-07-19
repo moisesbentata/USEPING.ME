@@ -95,6 +95,43 @@ const tools: Anthropic.Tool[] = [
     },
   },
   {
+    name: "set_own_name",
+    description: "Save the user's own first name, so Ping can introduce them by name when texting one of their contacts on their behalf. Call this once, the first time it's needed and not already known.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "The user's first name." },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "save_contact",
+    description: "Save a phone number for someone the user wants to remind, so it only needs to be asked once.",
+    input_schema: {
+      type: "object",
+      properties: {
+        contactName: { type: "string", description: "The contact's first name, as the user refers to them." },
+        phone: { type: "string", description: "Phone number in international format, e.g. +14155551234." },
+      },
+      required: ["contactName", "phone"],
+    },
+  },
+  {
+    name: "remind_contact",
+    description:
+      "Schedule a reminder to be sent to one of the user's contacts (not the user themselves) at a future time, on the user's behalf. The contact must already be saved via save_contact — if not found, this will say so; ask the user for the number and call save_contact first, then retry.",
+    input_schema: {
+      type: "object",
+      properties: {
+        contactName: { type: "string", description: "The contact's name, matching what was used in save_contact." },
+        task: { type: "string", description: "What to remind them about, phrased as the task itself, e.g. 'send over the contract'." },
+        dueAt: { type: "string", description: "ISO 8601 timestamp of when to send it." },
+      },
+      required: ["contactName", "task", "dueAt"],
+    },
+  },
+  {
     name: "set_timezone",
     description:
       "Save the user's timezone so clock-time reminders (e.g. '6pm', 'at 9 tomorrow') resolve correctly. Call this whenever the user tells you where they are or that they've moved/traveled, or in response to asking them where they're based.",
@@ -159,10 +196,37 @@ async function runTool(userId: string, name: string, input: any, timezone: strin
       await prisma.user.update({ where: { id: userId }, data: { timezone: input.ianaTimezone } });
       return `Timezone set to ${input.ianaTimezone}.`;
     }
+    case "set_own_name": {
+      await prisma.user.update({ where: { id: userId }, data: { name: input.name } });
+      return `Name set to ${input.name}.`;
+    }
+    case "save_contact": {
+      await prisma.contact.upsert({
+        where: { ownerId_phone: { ownerId: userId, phone: input.phone } },
+        update: { name: input.contactName },
+        create: { ownerId: userId, name: input.contactName, phone: input.phone },
+      });
+      return `Saved contact ${input.contactName} (${input.phone}).`;
+    }
+    case "remind_contact": {
+      const contact = await prisma.contact.findFirst({
+        where: { ownerId: userId, name: { equals: input.contactName, mode: "insensitive" } },
+        orderBy: { createdAt: "desc" },
+      });
+      if (!contact) {
+        return `No saved contact named "${input.contactName}". Ask the user for their phone number, call save_contact, then retry remind_contact.`;
+      }
+      const dueAt = new Date(input.dueAt);
+      await prisma.reminder.create({
+        data: { userId, contactId: contact.id, message: input.task, dueAt },
+      });
+      return `Reminder to ${contact.name} scheduled for ${dueAt.toISOString()}.`;
+    }
     case "list_reminders": {
       const reminders = await prisma.reminder.findMany({
         where: { userId, status: "pending" },
         orderBy: { dueAt: "asc" },
+        include: { contact: true },
       });
       if (reminders.length === 0) return "No pending reminders.";
       return reminders
@@ -170,7 +234,8 @@ async function runTool(userId: string, name: string, input: any, timezone: strin
           const when = timezone ? r.dueAt.toLocaleString("en-US", { timeZone: timezone }) : r.dueAt.toISOString();
           const recurring = r.recurrenceRule ? " [recurring]" : "";
           const grouped = r.groupId ? " [part of a series]" : "";
-          return `- id=${r.id}: ${r.message} (${when})${recurring}${grouped}`;
+          const target = r.contact ? ` [to ${r.contact.name}, not the user]` : "";
+          return `- id=${r.id}: ${r.message} (${when})${recurring}${grouped}${target}`;
         })
         .join("\n");
     }
@@ -236,6 +301,7 @@ Guidelines:
 - If the user wants a repeating reminder ("every Tuesday", "every day"), pass recurrenceRule to create_reminder as an RFC5545 RRULE. If they gave no end point, leave it open-ended (repeats until cancelled). If they gave one ("for the next month"), set UNTIL accordingly.
 - For a genuinely significant, date-driven event far enough out that one reminder at zero-hour wouldn't be useful (an exam, a big deadline, a trip) — not a trivial task like taking out the trash — use create_reminder_series to schedule a handful of well-spaced check-ins working backward from the date, each with fitting phrasing (e.g. "start revising" well before, "good luck!" on the day). Always tell the user in your reply exactly what check-ins you're planning, so they can adjust. If the user specifies their own cadence ("just remind me the morning of"), respect that exactly instead of building a series.
 - To cancel/remove/stop a reminder: call list_reminders, match it against what the user described. If exactly one clearly matches, cancel it directly. If more than one could match, describe the options in plain language and ask which one before cancelling — never guess. Never show raw reminder ids to the user; those are for your internal use only. If a cancelled reminder was part of a series, mention that the whole series was cancelled.
+- If the user asks you to remind someone else (e.g. "remind John tomorrow to send me the contract"), that's a different flow from a normal reminder: call remind_contact. If it comes back saying the contact isn't saved, ask the user for that person's phone number, call save_contact, then call remind_contact again. If you don't yet know the user's own first name and are about to remind a contact for the first time, ask for it and call set_own_name first (it's used to introduce the user by name when texting the contact).
 - Write like a real person texting, not a customer support bot. Short sentences. No bullet points, no bold/markdown headers, no numbered lists, unless the user is explicitly asking for a structured list of items — even then keep it minimal (plain dashes, no headers, no bold).
 - Don't over-explain or pad the reply with extra offers to help unless it's genuinely useful. One or two sentences is often enough.
 - Don't narrate tool use ("I'll save that") — just reply the way a person would after already knowing the answer.

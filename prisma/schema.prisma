@@ -12,11 +12,25 @@ datasource db {
 model User {
   id        String     @id @default(cuid())
   phone     String     @unique
+  name      String?
   timezone  String?
   createdAt DateTime   @default(now())
   memories  Memory[]
   reminders Reminder[]
   messages  Message[]
+  contacts  Contact[]
+}
+
+model Contact {
+  id        String     @id @default(cuid())
+  ownerId   String
+  owner     User       @relation(fields: [ownerId], references: [id])
+  name      String
+  phone     String
+  createdAt DateTime   @default(now())
+  reminders Reminder[]
+
+  @@unique([ownerId, phone])
 }
 
 model Message {
@@ -47,5 +61,7 @@ model Reminder {
   recurrenceRule    String? // RFC5545 RRULE part only, e.g. "FREQ=WEEKLY;BYDAY=TU"
   recurrenceDtstart DateTime? // anchor date for computing recurrence occurrences
   groupId           String? // links related reminders (e.g. a lead-up sequence) so list/cancel treat them as one
+  contactId         String? // if set, this reminder is sent to the contact's phone, not the owner's
+  contact           Contact?  @relation(fields: [contactId], references: [id])
   createdAt         DateTime  @default(now())
 }

@@ -9,3 +9,7 @@ export async function getOrCreateUser(phone: string) {
     create: { phone },
   });
 }
+
+export async function findContactsByPhone(phone: string) {
+  return prisma.contact.findMany({ where: { phone }, include: { owner: true } });
+}

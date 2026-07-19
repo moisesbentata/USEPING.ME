@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from "express";
-import { getOrCreateUser } from "./db";
+import { prisma, getOrCreateUser, findContactsByPhone } from "./db";
 import { handleIncomingMessage } from "./agent";
 import { sendWhatsAppMessage } from "./whatsapp";
 import { startReminderScheduler } from "./scheduler";
@@ -19,7 +19,20 @@ app.post("/webhooks/whatsapp", async (req, res) => {
 
   try {
     const phone = from.replace("whatsapp:", "");
-    const user = await getOrCreateUser(phone);
+
+    const existingUser = await prisma.user.findUnique({ where: { phone } });
+    if (!existingUser) {
+      const contactMatches = await findContactsByPhone(phone);
+      if (contactMatches.length > 0) {
+        for (const contact of contactMatches) {
+          await sendWhatsAppMessage(contact.owner.phone, `${contact.name} replied: "${body}"`);
+        }
+        await sendWhatsAppMessage(phone, "Got it, I'll pass that along! 🙂");
+        return;
+      }
+    }
+
+    const user = existingUser ?? (await getOrCreateUser(phone));
     const reply = await handleIncomingMessage(user.id, body);
     await sendWhatsAppMessage(phone, reply);
   } catch (err) {

@@ -19,12 +19,21 @@ function nextOccurrence(recurrenceRule: string, dtstart: Date, after: Date): Dat
 async function checkDueReminders() {
   const due = await prisma.reminder.findMany({
     where: { status: "pending", dueAt: { lte: new Date() } },
-    include: { user: true },
+    include: { user: true, contact: true },
   });
 
   for (const reminder of due) {
     try {
-      await sendWhatsAppMessage(reminder.user.phone, `⏰ Reminder: ${reminder.message}`);
+      if (reminder.contact) {
+        const ownerName = reminder.user.name ?? "Someone";
+        await sendWhatsAppMessage(
+          reminder.contact.phone,
+          `Hi ${reminder.contact.name}! ${ownerName} asked me to remind you to ${reminder.message} 🙂`
+        );
+        await sendWhatsAppMessage(reminder.user.phone, `Reminded ${reminder.contact.name} to ${reminder.message} ✅`);
+      } else {
+        await sendWhatsAppMessage(reminder.user.phone, `⏰ Reminder: ${reminder.message}`);
+      }
 
       if (reminder.recurrenceRule && reminder.recurrenceDtstart) {
         const next = nextOccurrence(reminder.recurrenceRule, reminder.recurrenceDtstart, reminder.dueAt);
