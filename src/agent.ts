@@ -351,12 +351,11 @@ Guidelines:
     const toolUses = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
 
     if (toolUses.length === 0) {
-      // With server-side tools like web_search, a single response can interleave
-      // multiple text blocks around search calls — the real final answer is the
-      // last text block, not the first (which may be a stray mid-reasoning fragment).
+      // With server-side tools like web_search, a single response can split its
+      // reply across multiple separate text blocks interleaved with search calls.
+      // The full answer is all of them concatenated in order, not just one.
       const textBlocks = response.content.filter((b): b is Anthropic.TextBlock => b.type === "text");
-      const textBlock = textBlocks[textBlocks.length - 1];
-      const reply = textBlock?.text ?? "Done.";
+      const reply = textBlocks.map((b) => b.text).join("\n\n").trim() || "Done.";
       await prisma.message.create({ data: { userId, role: "assistant", content: reply } });
       return reply;
     }
