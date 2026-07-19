@@ -355,7 +355,7 @@ Guidelines:
       // reply across multiple separate text blocks interleaved with search calls.
       // The full answer is all of them concatenated in order, not just one.
       const textBlocks = response.content.filter((b): b is Anthropic.TextBlock => b.type === "text");
-      const reply = textBlocks.map((b) => b.text).join("\n\n").trim() || "Done.";
+      const reply = textBlocks.map((b) => b.text).join("").trim() || "Done.";
       await prisma.message.create({ data: { userId, role: "assistant", content: reply } });
       return reply;
     }
