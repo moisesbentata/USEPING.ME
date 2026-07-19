@@ -38,11 +38,14 @@ model Memory {
 }
 
 model Reminder {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  message   String
-  dueAt     DateTime
-  status    String   @default("pending") // pending | sent | cancelled
-  createdAt DateTime @default(now())
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  message           String
+  dueAt             DateTime
+  status            String    @default("pending") // pending | sent | cancelled
+  recurrenceRule    String? // RFC5545 RRULE part only, e.g. "FREQ=WEEKLY;BYDAY=TU"
+  recurrenceDtstart DateTime? // anchor date for computing recurrence occurrences
+  groupId           String? // links related reminders (e.g. a lead-up sequence) so list/cancel treat them as one
+  createdAt         DateTime  @default(now())
 }

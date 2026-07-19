@@ -32,7 +32,8 @@ const tools: Anthropic.Tool[] = [
   },
   {
     name: "create_reminder",
-    description: "Schedule a reminder that will be sent back to the user via WhatsApp at a specific future time.",
+    description:
+      "Schedule a single reminder that will be sent back to the user via WhatsApp at a specific future time. For a repeating reminder, include recurrenceRule. For a significant date-driven event that deserves multiple spaced-out check-ins (not a trivial one-off task), use create_reminder_series instead.",
     input_schema: {
       type: "object",
       properties: {
@@ -41,16 +42,56 @@ const tools: Anthropic.Tool[] = [
           type: "string",
           description: "ISO 8601 timestamp of when to send the reminder, computed from the current time given in context.",
         },
+        recurrenceRule: {
+          type: "string",
+          description:
+            "Optional. RFC5545 RRULE part (no DTSTART) for a repeating reminder, e.g. 'FREQ=WEEKLY;BYDAY=TU' for every Tuesday, or 'FREQ=WEEKLY;BYDAY=TU;UNTIL=20260819T000000Z' if the user gave an end point. Omit for a one-off reminder.",
+        },
       },
       required: ["message", "dueAt"],
     },
   },
   {
+    name: "create_reminder_series",
+    description:
+      "Schedule a group of related lead-up reminders for one significant, date-driven event (e.g. an exam, a big deadline, a trip) — multiple well-spaced check-ins working backward from the event, each with its own phrasing. Only use this when a single reminder genuinely wouldn't be enough lead time to matter; never use it for trivial or momentary tasks (those should just use create_reminder once).",
+    input_schema: {
+      type: "object",
+      properties: {
+        reminders: {
+          type: "array",
+          description: "The individual check-ins in the sequence, ordered by time.",
+          items: {
+            type: "object",
+            properties: {
+              message: { type: "string", description: "What this specific check-in should say." },
+              dueAt: { type: "string", description: "ISO 8601 timestamp for this check-in." },
+            },
+            required: ["message", "dueAt"],
+          },
+        },
+      },
+      required: ["reminders"],
+    },
+  },
+  {
     name: "list_reminders",
-    description: "Look up the user's actual pending (not-yet-sent) reminders. Always call this instead of guessing from conversation history when asked what reminders exist.",
+    description: "Look up the user's actual pending (not-yet-sent) reminders. Always call this instead of guessing from conversation history when asked what reminders exist, or before cancelling one.",
     input_schema: {
       type: "object",
       properties: {},
+    },
+  },
+  {
+    name: "cancel_reminder",
+    description:
+      "Cancel a specific pending reminder by its id (obtained from list_reminders). If it's part of a lead-up series, this cancels the whole series.",
+    input_schema: {
+      type: "object",
+      properties: {
+        reminderId: { type: "string", description: "The exact id of the reminder to cancel, from list_reminders." },
+      },
+      required: ["reminderId"],
     },
   },
   {
@@ -95,8 +136,24 @@ async function runTool(userId: string, name: string, input: any, timezone: strin
     }
     case "create_reminder": {
       const dueAt = new Date(input.dueAt);
-      await prisma.reminder.create({ data: { userId, message: input.message, dueAt } });
-      return `Reminder scheduled for ${dueAt.toISOString()}.`;
+      await prisma.reminder.create({
+        data: {
+          userId,
+          message: input.message,
+          dueAt,
+          recurrenceRule: input.recurrenceRule ?? null,
+          recurrenceDtstart: input.recurrenceRule ? dueAt : null,
+        },
+      });
+      return `Reminder scheduled for ${dueAt.toISOString()}${input.recurrenceRule ? ` (recurring: ${input.recurrenceRule})` : ""}.`;
+    }
+    case "create_reminder_series": {
+      const groupId = randomUUID();
+      const items = input.reminders as { message: string; dueAt: string }[];
+      await prisma.reminder.createMany({
+        data: items.map((r) => ({ userId, message: r.message, dueAt: new Date(r.dueAt), groupId })),
+      });
+      return `Scheduled ${items.length} check-ins: ${items.map((r) => new Date(r.dueAt).toISOString()).join(", ")}.`;
     }
     case "set_timezone": {
       await prisma.user.update({ where: { id: userId }, data: { timezone: input.ianaTimezone } });
@@ -111,9 +168,26 @@ async function runTool(userId: string, name: string, input: any, timezone: strin
       return reminders
         .map((r) => {
           const when = timezone ? r.dueAt.toLocaleString("en-US", { timeZone: timezone }) : r.dueAt.toISOString();
-          return `- ${r.message} (${when})`;
+          const recurring = r.recurrenceRule ? " [recurring]" : "";
+          const grouped = r.groupId ? " [part of a series]" : "";
+          return `- id=${r.id}: ${r.message} (${when})${recurring}${grouped}`;
         })
         .join("\n");
+    }
+    case "cancel_reminder": {
+      const reminder = await prisma.reminder.findUnique({ where: { id: input.reminderId } });
+      if (!reminder || reminder.userId !== userId || reminder.status !== "pending") {
+        return "Couldn't find a matching pending reminder — call list_reminders again to get current ids.";
+      }
+      if (reminder.groupId) {
+        const { count } = await prisma.reminder.updateMany({
+          where: { userId, groupId: reminder.groupId, status: "pending" },
+          data: { status: "cancelled" },
+        });
+        return `Cancelled the whole series (${count} check-ins).`;
+      }
+      await prisma.reminder.update({ where: { id: reminder.id }, data: { status: "cancelled" } });
+      return `Cancelled: ${reminder.message}.`;
     }
     default:
       return `Unknown tool: ${name}`;
@@ -159,6 +233,9 @@ Guidelines:
 - If the user asks to be reminded of something using a relative time ("in 10 mins", "in an hour"), that doesn't depend on timezone — just compute it from the current UTC time above and call create_reminder.
 - If the user asks to be reminded at a specific clock time ("6pm", "at 9 tomorrow", "13:20") and you do NOT know their timezone yet, don't guess — ask them where they're based first (e.g. "Quick one — what city/timezone are you in? Then I'll set that for good."). Once they answer, call set_timezone, then create_reminder.
 - Once you know the user's timezone, convert clock times they give you into the correct UTC dueAt using that timezone before calling create_reminder.
+- If the user wants a repeating reminder ("every Tuesday", "every day"), pass recurrenceRule to create_reminder as an RFC5545 RRULE. If they gave no end point, leave it open-ended (repeats until cancelled). If they gave one ("for the next month"), set UNTIL accordingly.
+- For a genuinely significant, date-driven event far enough out that one reminder at zero-hour wouldn't be useful (an exam, a big deadline, a trip) — not a trivial task like taking out the trash — use create_reminder_series to schedule a handful of well-spaced check-ins working backward from the date, each with fitting phrasing (e.g. "start revising" well before, "good luck!" on the day). Always tell the user in your reply exactly what check-ins you're planning, so they can adjust. If the user specifies their own cadence ("just remind me the morning of"), respect that exactly instead of building a series.
+- To cancel/remove/stop a reminder: call list_reminders, match it against what the user described. If exactly one clearly matches, cancel it directly. If more than one could match, describe the options in plain language and ask which one before cancelling — never guess. Never show raw reminder ids to the user; those are for your internal use only. If a cancelled reminder was part of a series, mention that the whole series was cancelled.
 - Write like a real person texting, not a customer support bot. Short sentences. No bullet points, no bold/markdown headers, no numbered lists, unless the user is explicitly asking for a structured list of items — even then keep it minimal (plain dashes, no headers, no bold).
 - Don't over-explain or pad the reply with extra offers to help unless it's genuinely useful. One or two sentences is often enough.
 - Don't narrate tool use ("I'll save that") — just reply the way a person would after already knowing the answer.
