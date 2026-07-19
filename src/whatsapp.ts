@@ -14,3 +14,17 @@ export async function sendWhatsAppMessage(toPhone: string, body: string) {
     body,
   });
 }
+
+const REMIND_CONTACT_TEMPLATE_SID = process.env.TWILIO_REMIND_CONTACT_CONTENT_SID;
+
+export async function sendContactReminder(toPhone: string, contactName: string, ownerName: string, task: string) {
+  if (!REMIND_CONTACT_TEMPLATE_SID) {
+    throw new Error("TWILIO_REMIND_CONTACT_CONTENT_SID is not set — the approved WhatsApp template is required to message someone who hasn't texted Ping first.");
+  }
+  await client.messages.create({
+    from: FROM,
+    to: toWhatsAppAddress(toPhone),
+    contentSid: REMIND_CONTACT_TEMPLATE_SID,
+    contentVariables: JSON.stringify({ "1": contactName, "2": ownerName, "3": task }),
+  });
+}

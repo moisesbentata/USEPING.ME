@@ -1,6 +1,6 @@
 import { RRule } from "rrule";
 import { prisma } from "./db";
-import { sendWhatsAppMessage } from "./whatsapp";
+import { sendWhatsAppMessage, sendContactReminder } from "./whatsapp";
 
 const CHECK_INTERVAL_MS = 15_000;
 
@@ -44,11 +44,16 @@ async function checkDueReminders() {
 
       if (reminder.contact) {
         const ownerName = reminder.user.name ?? "Someone";
-        await sendWhatsAppMessage(
-          reminder.contact.phone,
-          `Hi ${reminder.contact.name}! ${ownerName} asked me to remind you to ${reminder.message} 🙂`
-        );
-        await sendWhatsAppMessage(reminder.user.phone, `Reminded ${reminder.contact.name} to ${reminder.message} ✅`);
+        try {
+          await sendContactReminder(reminder.contact.phone, reminder.contact.name, ownerName, reminder.message);
+          await sendWhatsAppMessage(reminder.user.phone, `Reminded ${reminder.contact.name} to ${reminder.message} ✅`);
+        } catch (sendErr) {
+          console.error(`Failed to reach contact for reminder ${reminder.id}:`, sendErr);
+          await sendWhatsAppMessage(
+            reminder.user.phone,
+            `Couldn't reach ${reminder.contact.name} about "${reminder.message}" — the message failed to deliver.`
+          );
+        }
       } else {
         await sendWhatsAppMessage(reminder.user.phone, `⏰ Reminder: ${reminder.message}`);
       }
