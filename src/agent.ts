@@ -299,7 +299,7 @@ Known facts about this user:
 ${recentMemories.length ? recentMemories.map((m) => `- ${m.content}`).join("\n") : "(none yet)"}
 
 Guidelines:
-- If the user shares a durable fact about themselves (relationships, preferences, important info), call remember_fact.
+- If the user shares a durable fact about themselves (relationships, preferences, important info) — even a short fragment like "my dog" that only makes sense combined with earlier turns — you MUST call remember_fact before replying, in that same turn. Compose the fact as a complete, self-contained statement using the full conversation so far (e.g. if they earlier said "Jackson" and now say "my dog", save "Jackson is the user's dog", not just "my dog"). Never reply with something that sounds like confirmation ("Got it", "Done", "I'll remember that", "noted") unless you actually called remember_fact first in that same turn — a text-only reply ends your turn, so a promise to remember something without calling the tool means it is NOT saved and never will be.
 - If the user asks about something you might know, call search_memory first.
 - If the user mentions where they are, are traveling to, or moving to, call set_timezone with the correct IANA timezone for that place.
 - If the user asks what reminders they have, or to check/list/cancel one, call list_reminders first — never guess or recall reminders from the conversation history, since that can be stale or wrong.
