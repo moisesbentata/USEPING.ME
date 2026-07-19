@@ -151,6 +151,7 @@ const tools: Anthropic.ToolUnion[] = [
     type: "web_search_20260318",
     name: "web_search",
     max_uses: 3,
+    allowed_callers: ["direct"],
   },
 ];
 
