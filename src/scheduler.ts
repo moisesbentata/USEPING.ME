@@ -9,7 +9,7 @@ export function startReminderScheduler() {
   checkDueReminders();
 }
 
-function nextOccurrence(recurrenceRule: string, dtstart: Date, after: Date): Date | null {
+export function nextOccurrence(recurrenceRule: string, dtstart: Date, after: Date): Date | null {
   const options = RRule.parseString(recurrenceRule);
   options.dtstart = dtstart;
   const rule = new RRule(options);
@@ -24,6 +24,24 @@ async function checkDueReminders() {
 
   for (const reminder of due) {
     try {
+      // Claim the reminder atomically before sending anything, so a concurrent
+      // cancel or overlapping poll can never result in a duplicate/runaway send.
+      let nextDueAt: Date | null = null;
+      if (reminder.recurrenceRule && reminder.recurrenceDtstart) {
+        try {
+          nextDueAt = nextOccurrence(reminder.recurrenceRule, reminder.recurrenceDtstart, reminder.dueAt);
+        } catch (err) {
+          console.error(`Invalid recurrenceRule on reminder ${reminder.id}, treating as one-off:`, err);
+          nextDueAt = null;
+        }
+      }
+
+      const claim = await prisma.reminder.updateMany({
+        where: { id: reminder.id, status: "pending" },
+        data: nextDueAt ? { dueAt: nextDueAt } : { status: "sent" },
+      });
+      if (claim.count === 0) continue; // already cancelled or claimed elsewhere
+
       if (reminder.contact) {
         const ownerName = reminder.user.name ?? "Someone";
         await sendWhatsAppMessage(
@@ -34,16 +52,6 @@ async function checkDueReminders() {
       } else {
         await sendWhatsAppMessage(reminder.user.phone, `⏰ Reminder: ${reminder.message}`);
       }
-
-      if (reminder.recurrenceRule && reminder.recurrenceDtstart) {
-        const next = nextOccurrence(reminder.recurrenceRule, reminder.recurrenceDtstart, reminder.dueAt);
-        if (next) {
-          await prisma.reminder.update({ where: { id: reminder.id }, data: { dueAt: next } });
-          continue;
-        }
-      }
-
-      await prisma.reminder.update({ where: { id: reminder.id }, data: { status: "sent" } });
     } catch (err) {
       console.error(`Failed to send reminder ${reminder.id}:`, err);
     }

@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "./db";
 import { embedText, toVectorLiteral } from "./embeddings";
+import { nextOccurrence } from "./scheduler";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -173,6 +174,13 @@ async function runTool(userId: string, name: string, input: any, timezone: strin
     }
     case "create_reminder": {
       const dueAt = new Date(input.dueAt);
+      if (input.recurrenceRule) {
+        try {
+          nextOccurrence(input.recurrenceRule, dueAt, dueAt);
+        } catch (err) {
+          return `Invalid recurrenceRule "${input.recurrenceRule}": ${err instanceof Error ? err.message : err}. Fix it and call create_reminder again.`;
+        }
+      }
       await prisma.reminder.create({
         data: {
           userId,
