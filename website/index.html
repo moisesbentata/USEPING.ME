@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ping — Your AI Chief of Staff, in WhatsApp</title>
+<meta name="description" content="Ping remembers your life, manages your tasks, and coordinates with the people in it — all from a WhatsApp chat. Not another chatbot. An assistant that acts." />
+
+<!-- Open Graph -->
+<meta property="og:title" content="Ping — Your AI Chief of Staff, in WhatsApp" />
+<meta property="og:description" content="Text Ping like a human assistant. It remembers everything, sets reminders, follows up with people, and gets things done." />
+<meta property="og:type" content="website" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css" />
+
+<!-- Meta Pixel (base code placeholder — replace YOUR_PIXEL_ID and uncomment) -->
+<!--
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', 'YOUR_PIXEL_ID');
+fbq('track', 'PageView');
+</script>
+-->
+</head>
+<body>
+
+<div class="noise-overlay"></div>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="#top" class="logo">
+      <span class="logo-dot"></span>
+      Ping
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a href="#pricing" class="btn btn-primary btn-sm">Get started</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Lives entirely in WhatsApp</div>
+        <h1>The world's best assistant<br>fits in <span class="text-gradient">one text thread.</span></h1>
+        <p class="hero-sub">
+          Ping remembers your life, sets your reminders, follows up with people for you,
+          and quietly handles the small stuff — all from WhatsApp. No app to download.
+          No new interface to learn. Just text it like you would a person.
+        </p>
+        <div class="hero-actions">
+          <a href="#pricing" class="btn btn-primary btn-lg">Get Ping</a>
+          <a href="#features" class="btn btn-ghost btn-lg">See what it can do</a>
+        </div>
+        <div class="hero-trust">
+          <div class="avatar-stack">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <p>Built for people who forget things, ghost their friends by accident, and have too much going on.</p>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="phone-frame phone-frame-hero">
+          <div class="phone-notch"></div>
+          <div class="chat-header">
+            <div class="chat-avatar">P</div>
+            <div>
+              <div class="chat-name">Ping</div>
+              <div class="chat-status">online</div>
+            </div>
+          </div>
+          <div class="chat-body" id="hero-chat"></div>
+        </div>
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOGOS / PROOF STRIP (placeholder) -->
+  <section class="proof-strip">
+    <div class="container">
+      <p>Reminders sent · Facts remembered · Follow-ups chased · All without opening an app</p>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="features">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow eyebrow-center"><span class="eyebrow-dot"></span> Capabilities</div>
+        <h2>Not a chatbot. An assistant that acts.</h2>
+        <p>Most AI tools answer questions. Ping finishes things — and remembers everything along the way.</p>
+      </div>
+
+      <div class="feature-row">
+        <div class="feature-copy">
+          <span class="feature-tag">Long-term memory</span>
+          <h3>It actually knows you.</h3>
+          <p>Mention something once — a relationship, a preference, a birthday — and Ping remembers it for good.
+             Search your own life by meaning, not exact keywords, months later.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header">
+              <div class="chat-avatar">P</div>
+              <div><div class="chat-name">Ping</div><div class="chat-status">online</div></div>
+            </div>
+            <div class="chat-body" data-thread="memory"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row feature-row-reverse">
+        <div class="feature-copy">
+          <span class="feature-tag">Remind a friend</span>
+          <h3>It follows up so you don't have to.</h3>
+          <p>Ask Ping to remind someone else about something — it'll ask for their number once, text them at the
+             right time on your behalf, and tell you the moment they reply.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header">
+              <div class="chat-avatar">P</div>
+              <div><div class="chat-name">Ping</div><div class="chat-status">online</div></div>
+            </div>
+            <div class="chat-body" data-thread="remind-friend"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <div class="feature-copy">
+          <span class="feature-tag">Voice notes</span>
+          <h3>Too lazy to type? Just talk.</h3>
+          <p>Send a voice memo like you would to a friend. Ping transcribes it instantly and handles it exactly
+             like a typed message — recurring reminders, memory, all of it.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header">
+              <div class="chat-avatar">P</div>
+              <div><div class="chat-name">Ping</div><div class="chat-status">online</div></div>
+            </div>
+            <div class="chat-body" data-thread="voice"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row feature-row-reverse">
+        <div class="feature-copy">
+          <span class="feature-tag">Smart reminders</span>
+          <h3>It knows the difference between "now" and "important."</h3>
+          <p>A trash reminder gets one ping at the right moment. A big exam or deadline gets a whole
+             lead-up plan — spaced check-ins working backward from the date, so you actually have time to prepare.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header">
+              <div class="chat-avatar">P</div>
+              <div><div class="chat-name">Ping</div><div class="chat-status">online</div></div>
+            </div>
+            <div class="chat-body" data-thread="series"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <div class="feature-copy">
+          <span class="feature-tag">Live research</span>
+          <h3>Ask it anything happening right now.</h3>
+          <p>Ping searches the live web and gives you a real answer in your own language — sourced, current,
+             and scannable — not a wall of links to click through.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header">
+              <div class="chat-avatar">P</div>
+              <div><div class="chat-name">Ping</div><div class="chat-status">online</div></div>
+            </div>
+            <div class="chat-body" data-thread="research"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="how-it-works">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow eyebrow-center"><span class="eyebrow-dot"></span> How it works</div>
+        <h2>Three steps. Zero apps to download.</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">01</div>
+          <h3>Subscribe</h3>
+          <p>Pick a plan below. Takes under a minute, no app store, no download.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">02</div>
+          <h3>Say hi on WhatsApp</h3>
+          <p>Tap the link we send you — it opens a chat with Ping. Just start texting.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">03</div>
+          <h3>It gets smarter every day</h3>
+          <p>Every conversation adds to what Ping knows about your life. It gets more useful the longer you use it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing" class="pricing">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow eyebrow-center"><span class="eyebrow-dot"></span> Pricing</div>
+        <h2>Cheaper than a coffee a month.</h2>
+        <p>No app fees. No hidden tiers. Cancel any time — right from the chat, no forms.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <div class="price-card">
+          <div class="price-card-head">
+            <h3>Monthly</h3>
+            <p>Try it out, no commitment</p>
+          </div>
+          <div class="price-amount"><span class="price-currency">£</span>5<span class="price-period">/month</span></div>
+          <ul class="price-features">
+            <li>Everything in Ping</li>
+            <li>Unlimited reminders &amp; memory</li>
+            <li>Cancel any time, from the chat</li>
+          </ul>
+          <a href="#" class="btn btn-ghost btn-block" data-plan="monthly">Get started</a>
+        </div>
+
+        <div class="price-card price-card-featured">
+          <div class="price-badge">Best value</div>
+          <div class="price-card-head">
+            <h3>Yearly</h3>
+            <p>2 months free vs. monthly</p>
+          </div>
+          <div class="price-amount"><span class="price-currency">£</span>36<span class="price-period">/year</span></div>
+          <ul class="price-features">
+            <li>Everything in Ping</li>
+            <li>Unlimited reminders &amp; memory</li>
+            <li>Cancel any time, from the chat</li>
+            <li>Works out to £3/month</li>
+          </ul>
+          <a href="#" class="btn btn-primary btn-block" data-plan="yearly">Get started</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="faq">
+    <div class="container container-narrow">
+      <div class="section-head">
+        <div class="eyebrow eyebrow-center"><span class="eyebrow-dot"></span> FAQ</div>
+        <h2>Questions, answered.</h2>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item" open>
+          <summary>Do I need to download an app?</summary>
+          <p>No. Ping lives entirely inside WhatsApp, an app you already have. There's nothing else to install.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Is my data private?</summary>
+          <p>Yes — your conversations and memories are yours. Ping only remembers what you choose to tell it, and you can ask it to forget anything, any time.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Can I cancel any time?</summary>
+          <p>Yep — just tell Ping in the chat that you want to cancel. No forms, no phone calls, no "are you sure" dark patterns.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What can Ping actually do today?</summary>
+          <p>Remember facts about your life and recall them by meaning, set one-off and recurring reminders, plan smart lead-up check-ins for big events, remind other people on your behalf, understand voice notes, and search the live web for current information. More is being added constantly.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Which countries does it work in?</summary>
+          <p>Anywhere WhatsApp works. Message us if you hit an issue with your number.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta">
+    <div class="container final-cta-inner">
+      <h2>Stop being your own assistant.</h2>
+      <p>It takes less time to set up than to read this sentence twice.</p>
+      <a href="#pricing" class="btn btn-primary btn-lg">Get Ping</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <a href="#top" class="logo"><span class="logo-dot"></span>Ping</a>
+    <p>&copy; <span id="year"></span> Ping. Not affiliated with WhatsApp or Meta.</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
