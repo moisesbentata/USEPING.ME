@@ -1,0 +1,527 @@
+<title>Ping — Your AI Chief of Staff, in WhatsApp</title>
+<meta name="description" content="Ping remembers your life, manages your tasks, and coordinates with the people in it — all from a WhatsApp chat." />
+
+<style>
+:root {
+  --bg: #08080b;
+  --bg-elevated: #0f0f14;
+  --card: #131318;
+  --border: rgba(255,255,255,0.08);
+  --border-soft: rgba(255,255,255,0.05);
+  --text: #f4f4f6;
+  --text-dim: #9a9aa5;
+  --text-dimmer: #6b6b76;
+  --accent: #7c5cff;
+  --accent-2: #35e0c9;
+  --accent-gradient: linear-gradient(135deg, #7c5cff 0%, #35e0c9 100%);
+  --wa-out: #1f8a5c;
+  --wa-in: #1c1c22;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
+  --shadow-glow: 0 0 80px rgba(124,92,255,0.25);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+.noise-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+.container-narrow { max-width: 760px; }
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; text-wrap: balance; }
+h1 { font-size: clamp(2.4rem, 5vw, 3.6rem); }
+h2 { font-size: clamp(1.8rem, 3.5vw, 2.6rem); }
+h3 { font-size: 1.3rem; font-weight: 700; }
+p { color: var(--text-dim); }
+.text-gradient { background: var(--accent-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 999px; font-weight: 600; padding: 12px 22px; font-size: 0.95rem;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.btn-primary { background: var(--accent-gradient); color: #08080b; }
+.btn-primary:hover { box-shadow: 0 8px 24px rgba(124,92,255,0.35); }
+.btn-ghost { background: rgba(255,255,255,0.04); border-color: var(--border); color: var(--text); }
+.btn-ghost:hover { background: rgba(255,255,255,0.08); }
+.btn-sm { padding: 9px 16px; font-size: 0.85rem; }
+.btn-lg { padding: 15px 28px; font-size: 1rem; }
+.btn-block { width: 100%; }
+.site-header {
+  position: sticky; top: 0; z-index: 50; backdrop-filter: blur(16px);
+  background: rgba(8,8,11,0.7); border-bottom: 1px solid var(--border-soft);
+}
+.header-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+.logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.15rem; }
+.logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent-gradient); box-shadow: 0 0 12px rgba(124,92,255,0.7); }
+.nav-links { display: flex; gap: 32px; }
+.nav-links a { color: var(--text-dim); font-size: 0.92rem; font-weight: 500; transition: color 0.15s ease; }
+.nav-links a:hover { color: var(--text); }
+@media (max-width: 760px) { .nav-links { display: none; } }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent-2); margin-bottom: 18px;
+}
+.eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-2); box-shadow: 0 0 8px rgba(53,224,201,0.8); }
+.eyebrow-center { justify-content: center; width: 100%; }
+.hero { padding: 90px 0 60px; position: relative; }
+.hero-inner { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
+@media (max-width: 900px) { .hero-inner { grid-template-columns: 1fr; } .hero-visual { order: -1; } }
+.hero h1 { margin-bottom: 20px; }
+.hero-sub { font-size: 1.1rem; max-width: 520px; margin-bottom: 32px; }
+.hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 40px; }
+.hero-trust { display: flex; align-items: center; gap: 14px; }
+.hero-trust p { font-size: 0.85rem; max-width: 320px; color: var(--text-dimmer); }
+.avatar-stack { display: flex; }
+.avatar-stack span { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-gradient); border: 2px solid var(--bg); margin-left: -10px; opacity: 0.85; }
+.avatar-stack span:first-child { margin-left: 0; }
+.hero-visual { position: relative; display: flex; justify-content: center; }
+.glow { position: absolute; border-radius: 50%; filter: blur(90px); z-index: -1; }
+.glow-1 { width: 340px; height: 340px; background: rgba(124,92,255,0.35); top: -40px; left: -20px; }
+.glow-2 { width: 280px; height: 280px; background: rgba(53,224,201,0.25); bottom: -20px; right: -20px; }
+.phone-frame {
+  width: 320px; height: 620px; background: #000; border-radius: 42px; border: 6px solid #1a1a1f;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6), var(--shadow-glow);
+  display: flex; flex-direction: column; overflow: hidden; position: relative;
+}
+.phone-frame-hero { transform: rotate(1.5deg); }
+.phone-notch { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 120px; height: 22px; background: #000; border-radius: 0 0 16px 16px; z-index: 5; }
+.chat-header { background: #1c1c22; padding: 18px 16px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.chat-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #08080b; font-size: 0.9rem; }
+.chat-name { font-weight: 700; font-size: 0.9rem; }
+.chat-status { font-size: 0.7rem; color: var(--accent-2); }
+.chat-body { flex: 1; background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.03), transparent 40%), #0b0b0e; padding: 16px 12px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.bubble-row { display: flex; }
+.bubble-row.out { justify-content: flex-end; }
+.bubble-row.in { justify-content: flex-start; }
+.bubble { max-width: 82%; padding: 9px 12px; border-radius: 14px; font-size: 0.83rem; line-height: 1.4; animation: bubbleIn 0.4s ease both; }
+.bubble.out { background: var(--wa-out); color: #fff; border-bottom-right-radius: 4px; }
+.bubble.in { background: var(--wa-in); color: #eaeaea; border-bottom-left-radius: 4px; }
+.bubble-time { font-size: 0.62rem; opacity: 0.6; margin-top: 4px; text-align: right; }
+.bubble-voice { display: flex; align-items: center; gap: 8px; }
+.bubble-voice .play-btn { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; }
+.bubble-voice .waveform { display: flex; align-items: center; gap: 2px; height: 18px; }
+.bubble-voice .waveform span { width: 2px; background: rgba(255,255,255,0.6); border-radius: 2px; }
+@keyframes bubbleIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.proof-strip { border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); padding: 18px 0; }
+.proof-strip p { text-align: center; font-size: 0.82rem; color: var(--text-dimmer); letter-spacing: 0.02em; }
+.section-head { text-align: center; max-width: 620px; margin: 0 auto 56px; }
+.section-head h2 { margin-bottom: 14px; }
+.features { padding: 110px 0; }
+.feature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; margin-bottom: 130px; }
+.feature-row:last-child { margin-bottom: 0; }
+.feature-row-reverse .feature-copy { order: 2; }
+@media (max-width: 900px) { .feature-row, .feature-row-reverse { grid-template-columns: 1fr; } .feature-row-reverse .feature-copy { order: 0; } .feature-visual { display: flex; justify-content: center; } }
+.feature-tag { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); background: rgba(124,92,255,0.12); border: 1px solid rgba(124,92,255,0.25); padding: 5px 12px; border-radius: 999px; margin-bottom: 16px; }
+.feature-copy h3 { margin-bottom: 12px; }
+.feature-copy p { font-size: 1rem; max-width: 440px; }
+.feature-visual .phone-frame { width: 280px; height: 560px; }
+.how-it-works { padding: 100px 0; background: var(--bg-elevated); border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+.step { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 32px 26px; }
+.step-number { font-size: 0.85rem; font-weight: 800; color: var(--accent-2); margin-bottom: 14px; }
+.step h3 { margin-bottom: 10px; }
+.step p { font-size: 0.92rem; }
+.pricing { padding: 110px 0; }
+.pricing-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; max-width: 720px; margin: 0 auto; }
+@media (max-width: 700px) { .pricing-grid { grid-template-columns: 1fr; } }
+.price-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 36px 30px; position: relative; display: flex; flex-direction: column; }
+.price-card-featured { border-color: rgba(124,92,255,0.5); box-shadow: 0 0 0 1px rgba(124,92,255,0.2), 0 20px 60px rgba(124,92,255,0.15); }
+.price-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--accent-gradient); color: #08080b; font-size: 0.72rem; font-weight: 800; padding: 5px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.03em; }
+.price-card-head p { font-size: 0.85rem; margin-top: 4px; }
+.price-amount { font-size: 2.6rem; font-weight: 800; margin: 22px 0 24px; letter-spacing: -0.03em; }
+.price-currency { font-size: 1.4rem; vertical-align: super; }
+.price-period { font-size: 0.95rem; font-weight: 500; color: var(--text-dim); }
+.price-features { list-style: none; margin-bottom: 28px; flex: 1; }
+.price-features li { font-size: 0.88rem; color: var(--text-dim); padding: 8px 0; border-bottom: 1px solid var(--border-soft); padding-left: 22px; position: relative; }
+.price-features li:last-child { border-bottom: none; }
+.price-features li::before { content: "✓"; position: absolute; left: 0; color: var(--accent-2); font-weight: 700; }
+.faq { padding: 100px 0; }
+.faq-list { display: flex; flex-direction: column; gap: 12px; }
+.faq-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px 22px; }
+.faq-item summary { cursor: pointer; font-weight: 600; font-size: 0.98rem; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: "+"; font-size: 1.3rem; color: var(--accent-2); transition: transform 0.2s ease; }
+.faq-item[open] summary::after { transform: rotate(45deg); }
+.faq-item p { margin-top: 12px; font-size: 0.9rem; }
+.final-cta { padding: 110px 0 130px; text-align: center; background: radial-gradient(circle at 50% 0%, rgba(124,92,255,0.15), transparent 60%); }
+.final-cta-inner h2 { margin-bottom: 12px; }
+.final-cta-inner p { margin-bottom: 32px; font-size: 1.05rem; }
+.site-footer { border-top: 1px solid var(--border-soft); padding: 32px 0; }
+.footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.footer-inner p { font-size: 0.8rem; color: var(--text-dimmer); }
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.is-visible { opacity: 1; transform: translateY(0); }
+.preview-banner {
+  background: #1c1c22; color: var(--text-dimmer); text-align: center; font-size: 0.78rem;
+  padding: 8px 16px; border-bottom: 1px solid var(--border-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bubble { animation: none; }
+  .reveal { transition: none; opacity: 1; transform: none; }
+}
+</style>
+
+<div class="preview-banner">Preview build — pricing buttons and Meta Pixel aren't wired up yet</div>
+<div class="noise-overlay"></div>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="#top" class="logo"><span class="logo-dot"></span>Ping</a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a href="#pricing" class="btn btn-primary btn-sm">Get started</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Lives entirely in WhatsApp</div>
+        <h1>The world's best assistant<br>fits in <span class="text-gradient">one text thread.</span></h1>
+        <p class="hero-sub">
+          Ping remembers your life, sets your reminders, follows up with people for you,
+          and quietly handles the small stuff — all from WhatsApp. No app to download.
+          No new interface to learn. Just text it like you would a person.
+        </p>
+        <div class="hero-actions">
+          <a href="#pricing" class="btn btn-primary btn-lg">Get Ping</a>
+          <a href="#features" class="btn btn-ghost btn-lg">See what it can do</a>
+        </div>
+        <div class="hero-trust">
+          <div class="avatar-stack"><span></span><span></span><span></span><span></span></div>
+          <p>Built for people who forget things, ghost their friends by accident, and have too much going on.</p>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="phone-frame phone-frame-hero">
+          <div class="phone-notch"></div>
+          <div class="chat-header">
+            <div class="chat-avatar">P</div>
+            <div><div class="chat-name">Ping</div><div class="chat-status">online</div></div>
+          </div>
+          <div class="chat-body" id="hero-chat"></div>
+        </div>
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="proof-strip">
+    <div class="container"><p>Reminders sent · Facts remembered · Follow-ups chased · All without opening an app</p></div>
+  </section>
+
+  <section id="features" class="features">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow eyebrow-center"><span class="eyebrow-dot"></span> Capabilities</div>
+        <h2>Not a chatbot. An assistant that acts.</h2>
+        <p>Most AI tools answer questions. Ping finishes things — and remembers everything along the way.</p>
+      </div>
+
+      <div class="feature-row">
+        <div class="feature-copy">
+          <span class="feature-tag">Long-term memory</span>
+          <h3>It actually knows you.</h3>
+          <p>Mention something once — a relationship, a preference, a birthday — and Ping remembers it for good. Search your own life by meaning, not exact keywords, months later.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header"><div class="chat-avatar">P</div><div><div class="chat-name">Ping</div><div class="chat-status">online</div></div></div>
+            <div class="chat-body" data-thread="memory"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row feature-row-reverse">
+        <div class="feature-copy">
+          <span class="feature-tag">Remind a friend</span>
+          <h3>It follows up so you don't have to.</h3>
+          <p>Ask Ping to remind someone else about something — it'll ask for their number once, text them at the right time on your behalf, and tell you the moment they reply.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header"><div class="chat-avatar">P</div><div><div class="chat-name">Ping</div><div class="chat-status">online</div></div></div>
+            <div class="chat-body" data-thread="remind-friend"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <div class="feature-copy">
+          <span class="feature-tag">Voice notes</span>
+          <h3>Too lazy to type? Just talk.</h3>
+          <p>Send a voice memo like you would to a friend. Ping transcribes it instantly and handles it exactly like a typed message — recurring reminders, memory, all of it.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header"><div class="chat-avatar">P</div><div><div class="chat-name">Ping</div><div class="chat-status">online</div></div></div>
+            <div class="chat-body" data-thread="voice"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row feature-row-reverse">
+        <div class="feature-copy">
+          <span class="feature-tag">Smart reminders</span>
+          <h3>It knows the difference between "now" and "important."</h3>
+          <p>A trash reminder gets one ping at the right moment. A big exam or deadline gets a whole lead-up plan — spaced check-ins working backward from the date, so you actually have time to prepare.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header"><div class="chat-avatar">P</div><div><div class="chat-name">Ping</div><div class="chat-status">online</div></div></div>
+            <div class="chat-body" data-thread="series"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <div class="feature-copy">
+          <span class="feature-tag">Live research</span>
+          <h3>Ask it anything happening right now.</h3>
+          <p>Ping searches the live web and gives you a real answer in your own language — sourced, current, and scannable — not a wall of links to click through.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="chat-header"><div class="chat-avatar">P</div><div><div class="chat-name">Ping</div><div class="chat-status">online</div></div></div>
+            <div class="chat-body" data-thread="research"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how-it-works" class="how-it-works">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow eyebrow-center"><span class="eyebrow-dot"></span> How it works</div>
+        <h2>Three steps. Zero apps to download.</h2>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="step-number">01</div><h3>Subscribe</h3><p>Pick a plan below. Takes under a minute, no app store, no download.</p></div>
+        <div class="step"><div class="step-number">02</div><h3>Say hi on WhatsApp</h3><p>Tap the link we send you — it opens a chat with Ping. Just start texting.</p></div>
+        <div class="step"><div class="step-number">03</div><h3>It gets smarter every day</h3><p>Every conversation adds to what Ping knows about your life. It gets more useful the longer you use it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="pricing">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow eyebrow-center"><span class="eyebrow-dot"></span> Pricing</div>
+        <h2>Cheaper than a coffee a month.</h2>
+        <p>No app fees. No hidden tiers. Cancel any time — right from the chat, no forms.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="price-card">
+          <div class="price-card-head"><h3>Monthly</h3><p>Try it out, no commitment</p></div>
+          <div class="price-amount"><span class="price-currency">£</span>5<span class="price-period">/month</span></div>
+          <ul class="price-features">
+            <li>Everything in Ping</li>
+            <li>Unlimited reminders &amp; memory</li>
+            <li>Cancel any time, from the chat</li>
+          </ul>
+          <a href="#" class="btn btn-ghost btn-block" data-plan="monthly">Get started</a>
+        </div>
+        <div class="price-card price-card-featured">
+          <div class="price-badge">Best value</div>
+          <div class="price-card-head"><h3>Yearly</h3><p>2 months free vs. monthly</p></div>
+          <div class="price-amount"><span class="price-currency">£</span>36<span class="price-period">/year</span></div>
+          <ul class="price-features">
+            <li>Everything in Ping</li>
+            <li>Unlimited reminders &amp; memory</li>
+            <li>Cancel any time, from the chat</li>
+            <li>Works out to £3/month</li>
+          </ul>
+          <a href="#" class="btn btn-primary btn-block" data-plan="yearly">Get started</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="faq">
+    <div class="container container-narrow">
+      <div class="section-head"><div class="eyebrow eyebrow-center"><span class="eyebrow-dot"></span> FAQ</div><h2>Questions, answered.</h2></div>
+      <div class="faq-list">
+        <details class="faq-item" open><summary>Do I need to download an app?</summary><p>No. Ping lives entirely inside WhatsApp, an app you already have. There's nothing else to install.</p></details>
+        <details class="faq-item"><summary>Is my data private?</summary><p>Yes — your conversations and memories are yours. Ping only remembers what you choose to tell it, and you can ask it to forget anything, any time.</p></details>
+        <details class="faq-item"><summary>Can I cancel any time?</summary><p>Yep — just tell Ping in the chat that you want to cancel. No forms, no phone calls, no "are you sure" dark patterns.</p></details>
+        <details class="faq-item"><summary>What can Ping actually do today?</summary><p>Remember facts about your life and recall them by meaning, set one-off and recurring reminders, plan smart lead-up check-ins for big events, remind other people on your behalf, understand voice notes, and search the live web for current information. More is being added constantly.</p></details>
+        <details class="faq-item"><summary>Which countries does it work in?</summary><p>Anywhere WhatsApp works. Message us if you hit an issue with your number.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <div class="container final-cta-inner">
+      <h2>Stop being your own assistant.</h2>
+      <p>It takes less time to set up than to read this sentence twice.</p>
+      <a href="#pricing" class="btn btn-primary btn-lg">Get Ping</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <a href="#top" class="logo"><span class="logo-dot"></span>Ping</a>
+    <p>&copy; <span id="year"></span> Ping. Not affiliated with WhatsApp or Meta.</p>
+  </div>
+</footer>
+
+<script>
+document.getElementById("year").textContent = new Date().getFullYear();
+
+const THREADS = {
+  hero: [
+    { from: "user", text: "Remind me to call mum when I leave work", time: "5:41 PM" },
+    { from: "ping", text: "Got it — I'll ping you the moment you're heading out.", time: "5:41 PM" },
+    { from: "user", text: "What should I get Sarah for her birthday?", time: "6:02 PM" },
+    { from: "ping", text: "A pottery class gift card? You mentioned she loved the one in Shoreditch last month 🏺", time: "6:02 PM" },
+  ],
+  memory: [
+    { from: "user", text: "My girlfriend Laure's birthday is March 3rd", time: "11:02 AM" },
+    { from: "ping", text: "Noted — I'll remember that.", time: "11:02 AM" },
+    { from: "user", text: "Recommend somewhere nice for Laure's birthday", time: "Feb 27" },
+    { from: "ping", text: "How about that Italian place near you she mentioned wanting to try? Or something with a view, since it's a big one — 6 years together?", time: "Feb 27" },
+  ],
+  "remind-friend": [
+    { from: "user", text: "Remind Alex tomorrow to send over the deck", time: "9:14 AM" },
+    { from: "ping", text: "Don't have Alex's number yet — what is it?", time: "9:14 AM" },
+    { from: "user", text: "+44 7911 123456", time: "9:15 AM" },
+    { from: "ping", text: "Done. I'll ping him tomorrow morning.", time: "9:15 AM" },
+    { from: "ping", text: "Alex replied: \"sending now, sorry for the delay 🙏\"", time: "Tomorrow, 9:03 AM" },
+  ],
+  voice: [
+    { from: "user", voice: true, duration: "0:06", time: "7:12 AM" },
+    { from: "ping", text: "Got it — reminding you every Tuesday and Thursday at 7am to hit the gym. First one's tomorrow 💪", time: "7:12 AM" },
+  ],
+  series: [
+    { from: "user", text: "I have my LSATs in 3 weeks", time: "8:30 PM" },
+    { from: "ping", text: "I'll check in 2 weeks out to start revision, again 5 days before, the night before, and morning-of. Sound good?", time: "8:31 PM" },
+    { from: "user", text: "perfect", time: "8:31 PM" },
+    { from: "ping", text: "⏰ 2 weeks to go — good time to start revising", time: "14 days later" },
+  ],
+  research: [
+    { from: "user", text: "What's the latest on the OpenAI Apple lawsuit", time: "1:47 PM" },
+    { from: "ping", text: "Sure! Give me a sec to look into that 🔍", time: "1:47 PM" },
+    { from: "ping", text: "Apple just filed a trade secrets suit alleging 400+ former employees now work at OpenAI (reuters.com). Want the details?", time: "1:47 PM" },
+  ],
+};
+
+function renderThread(el, messages, { loop = false } = {}) {
+  el.dataset.cancelled = "false";
+  async function play() {
+    el.innerHTML = "";
+    for (const msg of messages) {
+      if (el.dataset.cancelled === "true") return;
+      await sleep(msg.from === "ping" ? 650 : 450);
+      appendBubble(el, msg);
+      el.scrollTop = el.scrollHeight;
+    }
+    if (loop) {
+      await sleep(2600);
+      if (el.dataset.cancelled !== "true") play();
+    }
+  }
+  play();
+}
+
+function appendBubble(el, msg) {
+  const row = document.createElement("div");
+  row.className = `bubble-row ${msg.from === "user" ? "out" : "in"}`;
+  const bubble = document.createElement("div");
+  bubble.className = `bubble ${msg.from === "user" ? "out" : "in"}`;
+  if (msg.voice) {
+    bubble.innerHTML = `
+      <div class="bubble-voice">
+        <div class="play-btn">▶</div>
+        <div class="waveform">${randomWaveform()}</div>
+        <span style="font-size:0.68rem;opacity:0.75">${msg.duration}</span>
+      </div>
+      <div class="bubble-time">${msg.time}</div>
+    `;
+  } else {
+    bubble.innerHTML = `${escapeHtml(msg.text)}<div class="bubble-time">${msg.time}</div>`;
+  }
+  row.appendChild(bubble);
+  el.appendChild(row);
+}
+
+function randomWaveform() {
+  let bars = "";
+  for (let i = 0; i < 18; i++) {
+    const h = 4 + Math.round(Math.random() * 14);
+    bars += `<span style="height:${h}px"></span>`;
+  }
+  return bars;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+const heroEl = document.getElementById("hero-chat");
+if (heroEl) renderThread(heroEl, THREADS.hero, { loop: true });
+
+const featureThreads = document.querySelectorAll("[data-thread]");
+const threadObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    const el = entry.target;
+    if (entry.isIntersecting && !el.dataset.played) {
+      el.dataset.played = "true";
+      const key = el.getAttribute("data-thread");
+      if (THREADS[key]) renderThread(el, THREADS[key]);
+    }
+  });
+}, { threshold: 0.4 });
+featureThreads.forEach((el) => threadObserver.observe(el));
+
+document.querySelectorAll(".feature-row, .step, .price-card, .faq-item").forEach((el) => el.classList.add("reveal"));
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add("is-visible");
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.15 });
+document.querySelectorAll(".reveal").forEach((el) => revealObserver.observe(el));
+
+document.querySelectorAll("[data-plan]").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert(`Checkout for the ${btn.getAttribute("data-plan")} plan isn't wired up yet in this preview.`);
+  });
+});
+</script>
