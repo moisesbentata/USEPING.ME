@@ -10,15 +10,18 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  phone     String     @unique
-  name      String?
-  timezone  String?
-  createdAt DateTime   @default(now())
-  memories  Memory[]
-  reminders Reminder[]
-  messages  Message[]
-  contacts  Contact[]
+  id                   String     @id @default(cuid())
+  phone                String     @unique
+  name                 String?
+  timezone             String?
+  stripeCustomerId     String?    @unique
+  stripeSubscriptionId String?
+  subscriptionStatus   String?    // active | past_due | canceled | trialing
+  createdAt            DateTime   @default(now())
+  memories             Memory[]
+  reminders            Reminder[]
+  messages             Message[]
+  contacts             Contact[]
 }
 
 model Contact {

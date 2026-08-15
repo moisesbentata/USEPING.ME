@@ -19,6 +19,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "rrule": "^2.8.1",
+    "stripe": "^22.5.0",
     "twilio": "^6.0.2"
   },
   "devDependencies": {

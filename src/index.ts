@@ -5,10 +5,17 @@ import { handleIncomingMessage } from "./agent";
 import { sendWhatsAppMessage } from "./whatsapp";
 import { startReminderScheduler } from "./scheduler";
 import { transcribeAudio } from "./transcription";
+import { stripeRouter } from "./stripe";
 
 const app = express();
+
+// Stripe webhook needs raw body — mount before body parsers
+app.use("/stripe/webhook", express.raw({ type: "application/json" }));
+
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+
+app.use("/stripe", stripeRouter);
 
 async function downloadTwilioMedia(url: string): Promise<Buffer> {
   const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64");
